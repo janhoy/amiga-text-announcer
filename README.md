@@ -1,8 +1,8 @@
 Amiga Text Announcer (ATA)
 ==========================
 
-Jeg legger for moro skyld ut et program jeg skrev i min Amiga-periode. Dette er et Arexx
-script som kan kjøre i NComm kommunikasjonsprogram. Have fun :)
+Jeg legger for moro skyld ut et program jeg skrev i min [Amiga](http://en.wikipedia.org/wiki/Amiga)-periode. Dette er et [Arexx
+script](http://en.wikipedia.org/wiki/ARexx) som kan kjøre i [NComm kommunikasjonsprogram](http://en.wikipedia.org/wiki/NComm). Have fun :)
 
 Programmet var shareware på 90-tallet. Legger det ut under Apache-lisensen her!
 
