@@ -1,0 +1,30 @@
+(* Denne fila inneholder en entry for TV2's TekstTV annonsering. *)
+(* Gjelder fra 01/01/95 *)
+
+       Unitprice: 0.73            (* The price you pay per unit.          *)
+Telephone_rental: 0               (* The price you pay for renting line.  *)
+            Unit: kr.             (* The unit, dollars, pounds, whatever. *)
+
+Cheapzone_start: 22.00            (* On these two lines, state when *)
+  Cheapzone_end: 08.00            (* the cheapzone starts and ends. *)
+
+Cheapday: Sat                     (* Use a new line for each entry, *)
+Cheapday: Sun                     (* these are the cheap days in a  *)
+                                  (* week. The cheaptime for units  *)
+                                  (* specified later will be used   *)
+                                  (* for entries on these days.     *)
+
+
+(* Teletorg - ingen tidsdifferensiering her. *)
+
+          Phone_prefix: 8207
+    Cheapzone_unittime: 0.063     (* Tilsvarer 3,5 sekunder         *)
+Expensivezone_unittime: 0.063
+
+
+(* Kommunetakst / default *)
+
+          Phone_prefix:
+    Cheapzone_unittime: 9
+Expensivezone_unittime: 3
+

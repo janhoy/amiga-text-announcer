@@ -1,0 +1,37 @@
+/******************************************/
+/* Følgende variabler endres etter behov. */
+/* Se ATA.guide for dokumentasjon         */
+/******************************************/
+
+signatur      = '0A'X"!ATA161b!" /* Kan endres dersom du er registrert */
+editor        = "ed -sticky"    /* Kommando for å starte editor */
+editorsticky  = "Yes"			/* Yes=Editor er sticky, No=Løsrives */
+
+brukamigalyd  = "No"			/* Yes=Bruker ikke modem, men intern lyd */
+amigalydrate  = 79				/* Hastighet for piping i høyttaler */
+piptid        = 0.33            /* Hvor lang tid modem/Amiga bruker på */
+                                /* å pipe to tall. Finn gjennonsnittet! */
+
+telefonnummer = "82071001"      /* Ingen mellomrom, pga Callinfo */
+maxtegn       = 300             /* Meldingen blir kuttet hvis lengre. */
+feilgrense    = 3               /* Antall repetisjoner for diverse */
+ventetid      = 1.5             /* Ventetid mellom inntasting av */
+                                /* områdenummer og selve meldingen */
+                                /* Prøv større verdi hvis det blir feil */
+tslngd        = 3.5             /* Variheten av hvert tellerskritt */
+tspris        = 0.73            /* Prisen pr. tellerskritt */
+
+ncommdir      = "NComm:"        /* Katalog der NComm programmet ligger */
+initstreng    = "e0 q0"         /* Fyll inn din egen init-streng her */
+ikkeventdial  = "X0 s6=0"       /* eks: X0 (atx0) - se i modemhåndboka */
+                                /* For å ikke få "NO DIALTONE" */
+logfilnavn    = "NComm:ATA/ATA.log" /* Denne kan endres til NComm:NComm.log */
+configfil     = "NComm:ATA/ATA.config"  /* Du kan lage din egen! */
+                                    /* NComm vil da laste denne først */
+slen          = 45              /* Hver at-linje. Kan variere. Prøv lengre */
+ventNC        = 25              /* Sekunder å vente på at NComm skal */
+                                /* være tilgjengelig fra den startes */
+atadir        = "NComm:ATA/"    /* Katalog der ATA.ncomm ligger */
+                                /* OBS! Kan ligge ny linje nedenfor!! */
+annonsedir    = "NComm:ATA/Annonser/"   /* Katalogen for tekstfilene */
+                                        /* OBS! Kan ligge ny linje nedenfor!! */

@@ -1,0 +1,818 @@
+/****************************************************************/
+/* $VER: Amiga_Text_Announcer 1.61b (28.02.95) ©1993-97 Jan Høydahl. Shareware kr 50,-
+ * 19©93-97 Jan Høydahl - CHIPS productions                     */
+/* Program for å legge inn annonser på TV2's tekst-TV fra NComm */
+/* Se ATA.guide for mer informasjon om TextTV og ATA.           */
+/*                                                              */
+/* Laget av Jan Høydahl (INVENTOR) *** Shareware *** - kr. 50,- */
+/* Giro: 2367.10.20839                                          */
+/* Adresse: Vestliveien 4, 1344 HASLUM.                         */
+/* Shareware-beløpet har du spart inn etter få gangers bruk!    */
+/*                                                              */
+/* Sett tabulator til 4 når du leser/redigerer dette programmet */
+/* Ingenting i dette programmet trens å endres! Se på ATA.setup */
+/****************************************************************/
+
+
+/*********************************************************/
+/* Følgende variabler er *kun* satt som en sikkerhet!!   */
+/* Overskrives senere av innleste verdier fra ATA.setup! */
+/* Rediger derfor ATA.setup hvis du skal endre noe.      */
+/*********************************************************/
+
+signatur      = '0A'X"!ATA161b!"
+editor        = "ed -sticky"
+editorsticky  = "Yes"
+brukamigalyd  = "No"
+amigalydrate  = 79
+ncommdir      = "NComm:"
+telefonnummer = "82071001"
+initstreng    = "e0 q0"
+ikkeventdial  = "X0 s6=0"
+logfilnavn    = "NComm:ATA.log"
+configfil     = "NComm:ATA.config"
+maxtegn       = 300
+slen          = 45
+feilgrense    = 3
+piptid        = 0.33
+ventetid      = 1.5
+ventNC        = 25
+tslngd        = 3.5
+tspris        = 0.73
+atadir        = "NComm:"
+annonsedir    = "NComm:ATA/"
+
+
+/******************************************/
+/* Her starter initialisering m.m.        */
+/******************************************/
+options results	/* Kjekt å ha, får nok bruk for det en vakker dag */
+
+bool = exists("ENV:ATADIR")
+IF bool ~= 0 THEN DO	/* Henter evt. ENV-variabel for atadir */
+	call open('env','ENV:ATADIR','R')
+	atadir = readln('env')
+	IF right(atadir,1) ~= ":" THEN
+		IF right(atadir,1) ~= "/" THEN
+			atadir = atadir || "/"
+	call close('env')
+END
+
+setupnavn = ""
+bool = exists("ATA.setup")
+IF bool ~= 0 THEN setupnavn = ATA.setup
+ELSE DO
+	bool = exists(atadir"ATA.setup")
+	IF bool ~= 0 THEN setupnavn = atadir'ATA.setup'
+END
+IF setupnavn ~= "" THEN DO
+	open('upset',setupnavn,'R')
+	DO FOREVER			/* Så henter vi inn oppsettet fra ATA.setup fila */
+		linje = readln('upset')
+		bool = EOF('upset')
+		IF bool = 0 THEN interpret linje	/* Eksekverer hver linje */
+		ELSE LEAVE
+	END
+	call close('upset')
+END
+
+/* For å ikke være så sær på dir-navn, sjekker og korrigerer vi */
+IF (right(atadir,1) ~= ":") & (right(atadir,1) ~= "/") THEN DO
+	atadir = atadir"/"
+END
+
+IF (right(annonsedir,1) ~= ":") & (right(annonsedir,1) ~= "/") THEN DO
+	annonsedir = annonsedir"/"
+END
+
+IF (right(ncommdir,1) ~= ":") & (right(ncommdir,1) ~= "/") THEN DO
+	ncommdir = ncommdir"/"
+END
+
+ver = "1.61b"
+bytestr = '733A42797465436F756E74'X
+
+if (~show(P, 'ncomm')) THEN address command 'delete >nil: "t:ATA is running"'
+bool = exists('T:ATA is running')	/* Kan kun kjøre EN versjon */
+IF bool = 0 THEN DO
+	call open('test','T:ATA is running','W')
+	call close('test')
+END
+ELSE DO
+	say "Du kan ikke kjøre flere flere enn en kopi av ATA av gangen!"
+	say "Gjør du ikke det, så avslutt NComm og start ATA fra Shell."
+	EXIT
+END
+
+bool = exists(configfil)		/* Sjekker egen config-fil */
+IF bool = 0 THEN DO
+	configfil = ""				/* Ingen Configfil... */
+	configstart = ""
+END
+
+bool = 0
+time('R')
+tid = 0
+if (~show(P, 'ncomm')) then DO
+	say "**ATA: Starter NComm!"
+	IF configfil = "" THEN configstart = ""	/* Ikke start med config */
+	ELSE DO
+		configstart = "-c"configfil			/* Start NComm m/config */
+		configfil = ""						/* ..men kun én gang! */
+	END
+	address command "run >nil: <nil: "ncommdir"NComm" configstart
+	DO UNTIL bool = 1
+		bool = show(P, 'ncomm')
+		say "       Vent..." ventNC+1-trunc(time('E'),0) || "  " || "1B5B41"X
+		DO UNTIL trunc(time('E'),0) > tid
+		END
+		tid = trunc(time('E'),0)
+		IF tid > ventNC THEN BREAK	/* Burde holde i massevis! */
+	END
+	IF bool = 0 THEN DO
+		say "       Forresten - ombestemmer meg. Start NComm selv :-)"
+		say "       Mulige feil:"
+		say "       - Finner ikke NComm i katalogen "ncommdir"."
+		say "         Du må kanskje endre i filen ATA.setup."
+		say "       - For lite stack i CLI - Bruk 10000."
+		say "       - For lite ledig minne."
+		address command 'delete >nil: "t:ATA is running"'
+		EXIT
+	END
+	ELSE say "NComm startet suksessfult fra ATA!"
+	fraCLI = 1						/* For å kunne avslutte NComm siden */
+END
+
+strptr = 0
+navn = "Uregistrert versjon! - les ATA.guide!"
+strtxt = " 39 58 10 29 10 01 05 59"
+bool = exists(atadir'ATA.keyfile')	/* Sjekker registrering */
+IF bool ~= 0 THEN DO
+	call open('key',atadir'ATA.keyfile','R')
+	form = readln('key')			/* Henter linje */
+	IF form = "FORM    ATAK" THEN DO
+		strptr = readln('key')
+		navn2 = readln('key')
+		strptr = strptr % (length(navn2) + 3)
+		IF ((strptr + 1) // 73) = 0 THEN DO
+			navn = "Registrert på "navn2"."
+			address command "delete >nil: "bytestr
+			strtxt = ""
+		END
+		ELSE signatur = ""
+	END
+	call close('key')
+END
+ELSE signatur = ""
+
+address 'ncomm'			/* Gjelder selvsagt bare første kopi du kjører */
+						/* For de som starter flere sessions samtidig */
+						/* må du skrive navnet på ARexx-porten her. */
+
+GETVERSION
+ncommver = result		/* Pga bugs i NComm 3.02r brukes requestfile. */
+						/* Denne bugen er også oppdaget i 3.0 */
+IF ((ncommver = "NComm 3.02") | (ncommver = "NComm 3.0")) THEN DO
+	bool = exists(ncommdir'NComm.keyfile')
+	IF bool = 0 THEN ncommver = "NComm 3.02r"	/* Bruker v3.02r */
+END
+
+IF configfil ~= "" THEN config configfil	/* Laster config hvis finnes */
+
+IF (configstart = "") & (configfil = "") THEN
+	simplereq "Vennligst se etter at du har minimum 8 fargers NComm-skjerm!"
+
+cd annonsedir					/* For å få riktig område ved CLI... */
+IF RC = 1 THEN DO
+	address command 'makedir 'left(annonsedir,length(annonsedir)-1)
+	cd annonsedir
+	message "Opprettet katalog "'1B'X"[1m"annonsedir'1B'X"[0m!"'0A'X
+	dtenths 20
+END
+
+setcharset "ISO"				/* For å bl.a. få riktig © */
+message '0C'X'1B'X"[0;31mAmiga Text Announcer (ATA) v"ver"."'0A'X
+message "Arexx-Script for annonsering på TV2's tekst-TV."'0A'X
+message "© 1993-1997 Jan Høydahl, CHIPS Software."'0A'X'1B'X"[0m"'1B'X"[1m"
+message navn
+message '1B'X"[0m"'0A'X'0A'X
+
+IF setupnavn = "" THEN DO
+	message "Advarsel: Fant ikke ATA.setup!"'0A'X
+    message "Alle parametre (inkl. signatur) er satt til default."'0A'X
+END
+
+/* Vet noen en bedre måte å få linjeskift på enn '0A'X ??? */
+
+
+
+/**************************************************************/
+/* Her ser vi om vi skal skrive ny annonse eller bruke ferdig */
+/**************************************************************/
+twogadreq "'Yes' for å hente gammel annonse. 'No' for å skrive ny/redigere"
+tell = feilgrense						/* Antall forsøk før avbryt */
+result = "RESULT"
+IF RC = 1 THEN
+DO										/* Bruker har valgt 'No' */
+	DO FOR tell WHILE result = "RESULT"
+		message "Skriv inn nytt filnavn (Ex: PC_Salg)."'0A'X
+		message "OBS: Kun filnavn med endelsen .ATA aksepteres"'0A'X
+		message "     Signatur legges på automatisk"'0A'X
+		IF ncommver = "NComm 3.02r" THEN DO	/* Må unngå bug! */
+			/* Henter inn filnavn via requestfile */
+			address command "requestfile >T:ATA_fil "annonsedir" PATTERN #?.ATA TITLE Skriv_nytt_filnavn"
+			bool = exists("t:ATA_fil")
+			IF bool ~=0 THEN DO
+				call open('fil','t:ata_fil','R')
+				atafil = readln('fil')
+				call close('fil')
+				if atafil = "" THEN atafil = "RESULT"
+				result = atafil
+				if left(result,1) = '22'X THEN
+					result = right(result,length(result)-1)
+				if right(result,1) = '22'X THEN
+					result = left(result,length(result)-1)
+			END
+			ELSE DO
+				message "Feil i forbindelse med filrequester. Sjekk at du har kommandoene"'0A'X
+				message "requestfile og rxset i path (Se ATA.guide hvis du er usikker)."'0A'X
+				call Avslutt
+			END
+		END
+		ELSE filereq annonsedir
+	END
+
+	filnavn = result
+	IF filnavn = "RESULT" THEN DO
+		message "For mange feil! avbryter!!!"'0A'X
+		call Avslutt
+	END
+	bool = exists(filnavn)				/* Finnes filen fra før? */
+	IF bool = 0 THEN DO
+		call open('ny',filnavn,'W')
+		call writeln('ny',"#xxx [Navn på siden] - der xxx fylles inn med sidenummer på TekstTV")
+		call close('ny')
+	END
+	IF signatur ~= "" THEN DO
+		call open('sig',filnavn,'A')	/* Åpne fil for å legge til */
+		call writech('sig',signatur)	/* signatur før bruker redigerer */
+		call close('sig')
+	END
+	cli editor '22'X || filnavn || '22'X		/* Kaller opp editoren */
+	IF editorsticky = "No" THEN
+		simplereq "Klikk når annonsen er lagret"
+	dummy = right(filnavn,4,)					/* Sjekk .ATA endelse */
+	dummy = upper(dummy)
+	IF dummy = ".ATA" THEN NOP
+	ELSE DO
+		gammelt = filnavn
+		filnavn = gammelt".ATA"
+		CLI "rename >nil: <nil: " '22'X || gammelt || '22'X " " '22'X || filnavn || '22'X	/* Best å ha riktig endelse */
+	END
+END
+ELSE
+DO FOR tell WHILE result = "RESULT"		/* Bruker har valgt 'Yes' */
+	message "Velg allerede eksisterende fil."'0A'X
+	IF ncommver = "NComm 3.02r" THEN DO	/* Må unngå bug! */
+		/* Henter inn filnavn via requestfile */
+		address command "requestfile >T:ATA_fil "annonsedir" PATTERN #?.ATA TITLE Skriv_nytt_filnavn"
+		bool = exists("t:ATA_fil")
+		IF bool ~=0 THEN DO
+			call open('fil','t:ata_fil','R')
+			atafil = readln('fil')
+			call close('fil')
+			if atafil = "" THEN atafil = "RESULT"
+			result = atafil
+			if left(result,1) = '22'X THEN
+				result = right(result,length(result)-1)
+			if right(result,1) = '22'X THEN
+				result = left(result,length(result)-1)
+		END
+		ELSE DO
+			message "Feil i forbindelse med filrequester. Sjekk at du har kommandoene"'0A'X
+			message "requestfile og rxset i path (Se ATA.guide hvis du er usikker)."'0A'X
+			call Avslutt
+		END
+	END
+	ELSE filereq annonsedir
+
+	bool = exists(result)	/* Må sjekke riktig extension */
+	IF bool = 0 THEN DO
+		result = result".ATA"
+		bool = exists(result)
+		IF bool = 0 THEN result = "RESULT"
+	END
+	filnavn = result
+END
+
+IF filnavn = "RESULT" then DO
+	message "For mange feil! avbryter!!!"'0A'X
+	call Avslutt
+END
+
+IF ncommver ~= "NComm 2.0" THEN NCOMMTOFRONT
+
+/***************************************************/
+/* Lag til strengen som skal sendes. (hovedjobben) */
+/***************************************************/
+message '0A'X"Vent et øyeblikk mens de riktige kodene genereres..."'0A'X
+message "Ugyldige tegn vises med "'1B'X"[33mfarget "'1B'X"[0mskrift og ignoreres."'0A'X
+message '1B'X"[0;32m"'0A'X		/* Let's have some green here! */
+
+bool = open('innfil',filnavn,'R')
+IF bool = 0 THEN DO
+	simplereq "Fil ikke funnet, avslutter!"
+	call Avslutt
+END
+
+ut = " "						/* En slags initialisering */
+forrige = 10
+tell = maxtegn					/* Stopper hardt og brutalt på max */
+tell2 = 0
+DO FOR tell						/* Dvs helt til EOF eller maxtegn */
+	inn = readch('innfil',1)	/* Hent ett og ett tegn */
+	slutt = EOF('innfil')		/* Sjekk om vi er på slutten */
+	IF slutt = 1 THEN BREAK	  	/* Hopp ut av loopen */
+	inn = UPPER(inn)
+	ut1 = C2D(inn)
+	SELECT						/* Selve konverteringen */
+		when (ut1 >= 65) & (ut1 <= 86) then do			/* Bokstaver */
+										/* Plassert så tidlig som */
+			tall = ut1 - 65 + 10		/* mulig i when-rekka for */
+			ut = ut" "tall				/* å spare tid */
+			end
+
+		when (ut1 >= 48) & (ut1 <= 57) then	/* Tall */
+			ut = ut" "inn"*"
+
+		when inn = '#' THEN DO			/* Fila inneholder konf.nr. */
+			IF forrige = 10 THEN DO
+				omr = readln('innfil')	/* Henter linja */
+				inn = '1B'X"[36m["omr"]"'0A'X'1B'X"[0m"
+										/* Slenger på riktig mld. */
+				omr = left(omr,3)		/* Siler ut nummeret */
+				lengde = 3				/* Så juksar me litt :-) */
+				ut1 = 10
+			END
+			ELSE message '1B'X"[33m"	/* Feil-farge */
+		END
+
+		when inn = ' ' then ut = ut" 55"
+
+		when inn = 'W' then ut = ut" 39"	/* Bug-fix 29.02.95 */
+		when inn = 'X' then ut = ut" 32"
+		when inn = 'Y' then ut = ut" 33"
+		when inn = 'Z' then ut = ut" 34"
+		when inn = 'Æ' then ut = ut" 36"	/* Selvfølgelig klarer */
+		when inn = 'æ' then ut = ut" 36"	/* ikke upper() å takle */
+		when inn = 'Ø' then ut = ut" 37"	/* norske tegn :-( */
+		when inn = 'ø' then ut = ut" 37"
+		when inn = 'Å' then ut = ut" 35"
+		when inn = 'å' then ut = ut" 35"
+		when inn = 'Ä' then ut = ut" 36"
+		when inn = 'ä' then ut = ut" 36"
+		when inn = 'Ö' then ut = ut" 37"
+		when inn = 'ö' then ut = ut" 37"
+
+		when inn = '.' then ut = ut" 40"
+		when inn = ',' then ut = ut" 41"
+		when inn = '?' then ut = ut" 42"
+		when inn = '!' then ut = ut" 43"
+		when ut1 = 34  then ut = ut" 44"	/* " */
+		when inn = '-' then ut = ut" 45"
+		when inn = '&' then ut = ut" 46"
+		when inn = '+' then ut = ut" 47"
+		when inn = ':' then ut = ut" 48"
+		when ut1 = 10  then ut = ut" 55"	/* LF */
+		when ut1 =  9  then ut = ut" 55"	/* TAB */
+		when inn = '_' then ut = ut" 49"	/* Disse er nye aug-93 */
+
+/*		when inn = ';' then ut = ut" 50"	Kanskje de kommer igjen?? */
+/*		when inn = '%' then ut = ut" 51"	*/
+/*		when ut1 = 39  then ut = ut" 52"	*/
+/*		when inn = '/' then ut = ut" 53"	*/
+/*		when inn = '=' then ut = ut" 54"	*/
+/*		when inn = '(' then ut = ut" 56"	*/
+/*		when inn = ')' then ut = ut" 57"	*/
+/*		when inn = '<' then ut = ut" 58"	*/
+/*		when inn = '>' then ut = ut" 59"	*/
+/*		when inn = 'É' then ut = ut" 60"	*/
+/*		when inn = 'Ü' then ut = ut" 61"	*/
+
+		otherwise message '1B'X"[33m"		/* Default feilmelding */
+	END 									/* select */
+	message inn'1B'X"[32m"					/* Skriv etterhvert */
+	forrige = ut1							/* Husker til neste gang */
+END 										/* do for tell */
+message '1B'X"[0m"'0A'X'0A'X				/* Normal farge */
+
+/**************************************************************/
+/* Hvis meldingen er over maxtegn vises hva som ikke sendes.  */
+/**************************************************************/
+IF slutt = 0 THEN DO
+	message '1B'X"[35mDette kom ikke med pga. lang melding:"'0A1B'X"[0m"
+	beep
+	DO FOREVER	/* Dvs til EOF */
+		inn = readch('innfil',1)	/* Hent ett og ett tegn */
+		slutt = EOF('innfil')		/* Sjekk om vi er på slutten */
+		IF slutt = 1 THEN BREAK  	/* Hopp ut av loopen */
+		message inn					/* Skriv tegn som ikke kom med */
+	END
+	message '0A'X'0A'X
+	twogadreq "For lang melding! Trykk Yes=fortsett, No=avbryt"
+	IF RC = 1 then DO
+		message '0A'X"Du har valgt å avbryte. Start på nytt, men"'0A'X
+		message "velg samme fil en gang til og rediger slik at den"'0A'X
+		message "ikke blir lengre enn "maxlen" tegn."'0A'X
+		Twogadreq "Svar 'Yes' hvis du vil å beholde annonsen til senere. 'No' = slett"
+		IF RC = 1 then DO	/* Svarte nei */
+			CLI 'delete' '22'X || filnavn || '22'X
+		END /* if */
+		message "Takk for at du brukte -ATA"ver"-"'0A'X
+		call Avslutt
+	END /* if */
+	
+END
+call close('innfil')			/* Best å rydde opp... */
+
+ut = strip(ut,'L',' ')strtxt" #"	/* Tar bort ledende blanke */
+
+tell = feilgrense				/* Default antall feil før avslutt */
+IF lengde = 3 THEN tell = 0		/* Vi har allerede nummeret! */
+DO FOR tell UNTIL lengde = 3	/* Alltid tre tall i annonsesiden */
+	stringreq "Angi annonseområde (3 siffer)?"
+	omr = result
+	lengde = length(omr)
+END
+
+IF lengde ~= 3 THEN DO			/* Disse IF-setningene burde holde */
+	message '0A'X"Dessverre - feil antall tegn i områdenummer!"'0A'X
+	message "Prøv en gang til."'0A'X
+	stringreq "Angi annonseområde (3 siffer)?"
+	omr = result
+	lengde = length(omr)
+	if lengde ~= 3 THEN DO
+		Twogadreq "Svar 'Yes' hvis du vil å beholde annonsen til senere. 'No' = slett"
+		IF RC = 1 then DO	/* Svarte nei */
+			CLI 'delete' '22'X || filnavn || '22'X
+		END /* if */
+		call Avslutt
+	END
+END
+bool = datatype(omr,W)
+IF ~bool THEN DO
+	message '0A'X"Feil i områdenummer! Må være et TALL"'0A'X
+	message "Prøv en gang til."'0A'X
+	stringreq "Angi annonseområde (3 siffer)?"
+	omr = result
+	lengde = length(omr)
+	if lengde ~= 3 THEN DO
+		Twogadreq "Svar 'Yes' hvis du vil å beholde annonsen til senere. 'No' = slett"
+		IF RC = 1 then DO	/* Svarte nei */
+			CLI 'delete' '22'X || filnavn || '22'X
+		END /* if */
+		call Avslutt
+	END
+	bool = datatype(omr,W)
+	if ~bool THEN DO
+		Twogadreq "Svar 'Yes' hvis du vil å beholde annonsen til senere. 'No' = slett"
+		IF RC = 1 then DO	/* Svarte nei */
+			CLI 'delete' '22'X || filnavn || '22'X
+		END /* if */
+		Call Avslutt
+	END
+END
+IF left(omr,1) = '0' THEN DO
+	message '0A'X"Feil i områdenummer! Skal være et nummer mellom 100 og 999"'0A'X
+	message "Prøv en gang til."'0A'X
+	stringreq "Angi annonseområde (3 siffer)?"
+	omr = result
+	lengde = length(omr)
+	if lengde ~= 3 THEN DO
+		Twogadreq "Svar 'Yes' hvis du vil å beholde annonsen til senere. 'No' = slett"
+		IF RC = 1 then DO	/* Svarte nei */
+			CLI 'delete' '22'X || filnavn || '22'X
+		END /* if */
+		call Avslutt
+	END
+	bool = datatype(omr,W)
+	if ~bool THEN DO
+		Twogadreq "Svar 'Yes' hvis du vil å beholde annonsen til senere. 'No' = slett"
+		IF RC = 1 then DO	/* Svarte nei */
+			CLI 'delete' '22'X || filnavn || '22'X
+		END /* if */
+		Call Avslutt
+	END
+	IF left(omr,1) = '0' THEN DO
+		Twogadreq "Svar 'Yes' hvis du vil å beholde annonsen til senere. 'No' = slett"
+		IF RC = 1 then DO	/* Svarte nei */
+			CLI 'delete' '22'X || filnavn || '22'X
+		END /* if */
+		Call avslutt
+	END
+END
+
+
+/*****************************/
+/* Kalkulerer tid og pris ++ */
+/*****************************/
+bytes = trunc((length(ut)+1) / 3,0)+3
+tid = bytes * piptid + ventetid		/* Denne passer ganske bra */
+kost = trunc(tid/tslngd,0) * tspris	/* ...bare du tilpasser piptid */
+tid = trunc(tid,0)
+message "Estimert overføringstid: "tid" sekunder. Pris: ca "kost" kroner."'0A'X
+message "Annonsen vil havne i område (side) nummer "omr"."'0A'X
+IF ((strptr + 1) // 73) ~= 0 THEN DO
+bool = open('bytefil',bytestr,'R')
+IF bool = 1 then DO
+	byte = readln('bytefil')
+	call close('bytefil')
+END
+ELSE byte = 0
+IF byte > 802 THEN DO
+	beep
+	menuselect "'Screen',6,3"
+	beep
+	menuselect "'Screen',6,3"
+	spart = trunc(0.064 * byte ,0)
+	message '0A1B'X"[35mBare noen (40) sekunders oppmerksomhet:"'0A'X
+	message "Du har nå brukt dette programmet så mye at du"'0A'X
+	message "sannsynligvis har spart minst "'1B'X"[1;33mkr "spart'1B'X"[0;35m på å"'0A'X
+	message "bruke Amiga Text Announcer i forhold til manuell"'0A'X
+	message "oppringing. Jeg vil derfor oppfordre deg til å betale"'0A'X
+	message "shareware-beløpet på "'1B'X"[0mkr 50,-"'1B'X"[35m til:"'0A1B'X"[31m"
+	message "Jan Høydahl"'0A'X"Vestliveien 4"'0A'X"1344 HASLUM"'0A'X
+	message "Giro 2367.10.20839"'0A1B'X"[35m"
+	message "Dette kun hvis du vil fortsette å bruke programmet."'0A'X
+	message "Jeg sender deg elektronisk nøkkel per mail."'0A'X
+	message "For diskett i snail-mail er beløpet kr "'1B'X"[0m85,-"'1B'X"[35m."'0A1B'X"[0m"
+	message "(vent...)"'0A'X
+	dtenths 400
+	message "Takk for tålmodigheten - og innbetalingen!"'0A'X
+	dtenths 20
+END
+END
+
+/********************************************************************/
+/* Ferdig med konverteringen - gir brukeren anledning til å avbryte */
+/********************************************************************/
+twogadreq "Trykk 'Yes' for å ringe opp eller 'No' for å avslutte!"
+IF RC = 1 then DO
+	message '0A'X"Du har valgt å avbryte. Hvis du fremdeles vil sende"'0A'X
+	message "meldingen, start på nytt og velg samme fil en gang til."'0A'X
+	message "Takk for at du brukte -ATA"ver"-"'0A'X
+	Twogadreq "Svar 'Yes' hvis du vil å beholde annonsen til senere. 'No' = slett"
+	IF RC = 1 then DO	/* Svarte nei */
+		CLI 'delete' '22'X || filnavn || '22'X
+	END /* if */
+	call Avslutt
+END /* if */
+
+IF brukamigalyd = "Yes" THEN DO
+	Simplereq "Still inn volumet og klargjør for toneoverføring via høyttaler"
+END
+ELSE DO
+	clearbuffer				/* Høres lurt ut... */
+	inactivity 2			/* For å sjekke om modemet er på. */
+	send "at "initstreng"\n"/* Echo av, respons på, init */
+	wait "OK"
+	svar = left(result,2)
+	IF svar = "OK" THEN
+		message '1B5B411B5B41'X"               "'0D'X
+	ELSE DO
+		Beep
+		message '0A'X"Virker som om modemet ditt ikke er på."'0A'X
+		message "Skru på og prøv igjen. (Eller svar ja til å bruke Amiga-lyd)"'0A'X
+		Twogadreq "Trykk 'Yes' for å bruke Amigas lydkanaler. 'No' avslutter ATA!"
+		IF RC = 1 then DO
+			message '0A'X"Du har valgt å avbryte. Hvis du fremdeles vil sende"'0A'X
+			message "meldingen, start på nytt og velg samme fil en gang til."'0A'X
+			message "Takk for at du brukte -ATA"ver"-"'0A'X
+			Twogadreq "Svar 'Yes' hvis du vil å beholde annonsen til senere. 'No' = slett"
+			IF RC = 1 then DO	/* Svarte nei */
+				CLI 'delete' '22'X || filnavn || '22'X
+			END /* if */
+			call Avslutt	/* 'No' */
+		END
+		ELSE DO
+			brukamigalyd = "Yes"
+			Simplereq "Still inn volumet og klargjør for toneoverføring via høyttaler"
+		END
+	END	
+	inactivity 0
+END
+
+message '0A'X"Vent til damen er ferdig med å prate."'0A'X
+message "Trykk 'Yes' når du får svar (eller vent ca. 15 sek.). 'No'=opptatt"'0A'X
+tell = feilgrense
+DO FOR tell WHILE tell = feilgrense
+	IF brukamigalyd = "Yes" THEN DO
+		address command "dtmf rate " amigalydrate  '22'X || telefonnummer || '22'X
+	END
+	ELSE DO
+		send "atdt "telefonnummer";\n"
+		wait "OK"
+		message '1B5B411B5B41'X		/* Hopp opp igjen for pen output */
+	END
+	twogadreq "'Yes' når du får svar, 'No' hvis opptatt"
+	IF RC = 1 THEN DO				/* Bruker svar No */
+		IF brukamigalyd = "Yes" THEN DO
+			Simplereq "Legg på røret, få summetone og prøv igjen"
+		END
+		ELSE DO
+			send "ath0\n"
+			wait "OK"
+			message '1B5B411B5B41'X		/* Hopp opp igjen for pen output */
+		END
+		dtenths 5
+	END
+	ELSE tell = 0					/* Hopp ut av DO-loopen */
+END
+
+IF tell = feilgrense THEN DO
+	message feilgrense" mislykkede forsøk! Prøv en annen gang"'0A'X
+	IF brukamigalyd = "Yes" THEN DO
+		Simplereq "Legg på røret!"
+	END
+	ELSE DO
+		send "ate1h0\n"
+		wait "OK"
+		message '1B5B411B5B41'X			/* Hopp opp igjen for pen output */
+	END
+	Twogadreq "Svar 'Yes' hvis du vil å beholde annonsen til senere. 'No' = slett"
+	IF RC = 1 then DO	/* Svarte nei */
+		CLI 'delete' '22'X || filnavn || '22'X
+	END /* if */
+	message "Takk for at du brukte -ATA"ver"-"'0A'X
+	call Avslutt
+END
+
+IF brukamigalyd = "Yes" THEN DO
+	NOP
+END
+ELSE DO
+	send "at "ikkeventdial"\n"		/* Sender custom init */
+	wait "OK"
+	message '1B5B411B5B41'X			/* Hopp opp igjen for pen output */
+END
+
+
+/********************************************/
+/* Sender områdenummeret og venter på nytt. */
+/********************************************/
+btid = date()""time()""date('W')	/* Resetter timer for å ta tiden */
+call time('R')
+message "Sender områdenummer."'0A'X
+IF brukamigalyd = "Yes" THEN DO
+	address command "dtmf rate " amigalydrate  '22'X || omr || '22'X
+END
+ELSE DO
+	send "atdt "omr";\n"
+	wait "OK"
+	message '1B5B411B5B41'X		/* Hopp opp igjen for pen output */
+END
+message "Må vente i ca "ventetid" sekund(er) for å være sikker!"'0A'X
+
+dtenths (ventetid * 10)		/* Burde holde */
+message "Sender meldingen."'0A'X
+IF brukamigalyd = "Yes" THEN DO
+	/* Lurer litt på denne - skal lure maskinen til TV2... */
+	address command "dtmf rate " amigalydrate  '22'X || "0" || '22'X
+END
+ELSE DO
+	send "atdt 0;\n"			/* Bare for å lure maskinen */
+	wait "OK"
+	message '1B5B411B5B41'X		/* Hopp opp igjen for pen output */
+END
+dtenths 15					/* For å være sikker... (igjen) */
+
+/*************************************************/
+/* Deler opp strengen i passende biter og sender */
+/*************************************************/
+ettegn = substr(ut,1,2)			/* Sender ett tegn først */
+ut = delstr(ut,1,3)				/* Tar bort tegnet så det ikke repeteres */
+IF brukamigalyd = "Yes" THEN DO
+	address command "dtmf rate " amigalydrate  '22'X || ettegn || '22'X
+END
+ELSE DO
+	send "atdt "ettegn";\n"			/* Dette går nok bra ?? */
+	wait "OK"						/* Denne MÅ være med!! */
+	message '1B5B411B5B41'X			/* Hopp opp igjen - som vanlig */
+END
+tell = 0
+DO UNTIL stopp = 1				/* Er nødt til å dele opp i */
+	lengde = length(ut)			/* småstrenger på ca 30 tegn */
+	IF lengde > slen then DO	/* for ikke å få ERROR fra modemet */
+		ut2 = substr(ut,1,slen)	/* mitt. Burde da være kompatibelt */
+		ut  = delstr(ut,1,slen)	/* med de fleste?? Space teller */
+		tell = tell + 1			/* ikke med i tallet, derfor 45 */
+		prosent = " "trunc((tell*15)/bytes*100,0)" %"	/* Dvs 15 bokstaver pr. atdt-linje */
+	END
+	ELSE DO
+		ut2 = ut
+		stopp = 1
+		prosent = " 100 %"
+	END
+	IF brukamigalyd = "Yes" THEN DO
+		ut2 = compress(ut2)			/* Fjern space som bruker tid m/DTMF */
+		address command "dtmf rate " amigalydrate  '22'X || ut2 || '22'X
+	END
+	ELSE DO
+		send "atdt "ut2";\n"		/* Håper ikke strengen blir for lang :-) */
+		wait "OK"					/* Det KAN gå for fort også... */
+		message '1B5B411B5B41'X
+									/* Hopp opp igjen for pen output */
+	END
+	message '1B'X"[33m"prosent'0D'X'1B'X"[0m"
+END								/* do */
+
+
+/*******************************************/
+/* Avslutter "samtalen"                    */
+/*******************************************/
+stid = date()""time()""date('W')/* Stopper stoppeklokka her */
+ttid = time('E')
+IF brukamigalyd = "Yes" THEN DO
+	NOP
+END
+ELSE DO
+	send "ath0\n"					/* Legger på for sikkerhets skyld. */
+	message '1B5B411B5B41'X			/* Hopp opp igjen for pen output */
+	dtenths 20						/* Ikke fullgod løsning, men... */
+	send "at Z\n"					/* reset modem */
+	wait "OK"
+	message '1B5B411B5B41'X			/* Hopp opp igjen for pen output */
+END
+
+message "            "'0A'X
+message "            "'0A'X
+message "Oppringing ferdig! Annonsen skal først kontrolleres manuelt,"'0A'X
+message "så det pleier å ta noen timer før den legges inn."'0A'X
+message "Skru på TV2 og kontroller selv! (side "'1B'X"[32m"omr'1B'X"[0m)"'0A'X
+message "Annonsen ligger inne i to dager hvis ikke annet er angitt."'0A'X
+message "For spørsmål til Tekst-TV-redaksjonen, ring 55 90 82 30."'0A'X
+Twogadreq "Svar 'Yes' hvis du vil å beholde annonsen til senere. 'No' = slett"
+IF RC = 1 then DO	/* Svarte nei */
+	CLI 'delete' '22'X || filnavn || '22'X
+END /* if */
+message "Takk for at du brukte -ATA"ver"-"'0A'X
+clearbuffer
+
+
+/*******************************************/
+/* Skriver til loggfilen i NComm-format    */
+/*******************************************/
+bool = open('logfil',logfilnavn,'A')		/* Åpne fil for APPEND */
+IF bool = 0 THEN
+	call open('logfil',logfilnavn,'W')	/* Åpne fil for WRITE */
+linje = "TV2 TekstTV ("telefonnummer")"		/* Legge inn alle linjene */
+call writeln('logfil',linje)
+linje = "--------------------------------"
+call writeln('logfil',linje)
+linje = "Login:  "substr(btid,20,3)" "substr(btid,4,3)" "substr(btid,1,2)" "substr(btid,12,8)" "substr(btid,8,4)
+call writeln('logfil',linje)
+linje = "Logout: "substr(stid,20,3)" "substr(stid,4,3)" "substr(stid,1,2)" "substr(stid,12,8)" "substr(stid,8,4)
+call writeln('logfil',linje)
+min = trunc(ttid/60,0)				/* Primitiv måte å fixe tiden på */
+sec = trunc(ttid-60*min,0)
+test = substr(stid,19,1) - substr(btid,19,1)
+if test < 0 THEN test = test + 10
+test2 = right(sec,1)
+sec = sec + (test - test2)
+min = right("00"min,2)
+sec = right("00"sec,2)
+linje = "Time online: 00:"min":"sec
+call writeln('logfil',linje)
+message linje'0A'X
+linje = ""
+call writeln('logfil',linje)
+call close('logfil')
+IF ((strptr + 1) // 73) ~= 0 THEN DO
+byte = byte + bytes
+call open('bytefil',bytestr,'W')
+call writeln('bytefil',byte)
+call close('bytefil')
+call Avslutt
+END
+
+/*******************************/
+/* Rensker opp og avslutter.   */
+/*******************************/
+Avslutt:
+DO
+	address command 'delete >nil: "t:ATA is running"'		/* Nå kan vi starte på nytt */
+	IF fraCLI = 1 then DO
+		twogadreq "Avslutter NComm. ('No' = avbryt)"
+		IF RC = 0 THEN quit					/* Når vi har startet NComm
+											   får vi se å stenge av også */
+	END
+	EXIT									/* Bye bye */
+END
+
+
+/**************************************************************/
+/* Bug reports to NIL:                                        */
+/* Nei, for å være seriøs så er dette det første store Arexx  */
+/* programmet jeg lager, og det har vært gøy. Jeg setter stor */
+/* pris på om dere gir tilbakemelding (se ATA.guide for info.)*/
+/**************************************************************/

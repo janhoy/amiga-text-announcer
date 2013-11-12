@@ -1,0 +1,4 @@
+; Installeringsscript kick igang...
+
+failat 50
+newshell con:0/11/640/150/ATA_installering/AUTO from Installer.bat

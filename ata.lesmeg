@@ -1,0 +1,64 @@
+Amiga Text Announcer v1.61
+--------------------------
+
+Spre gjerne programmet videre, og prøv å beholde filnavnet
+ATA.ncomm som det er! Takk til Torkel Lodberg for NComm og dets
+kraftige ARexx-språk (selv om det er et par bugs ennå).
+
+Krav: NComm 2.xx (eller bedre) kommunikasjonsprogram
+      Arexx server installert på maskinen (følger med AmigaDOS 2.xx)
+      Helst TV2 og TEKST-TV for å kontrollere resultatet
+      Du trenger IKKE modem for å bruke ATA, men NComm må du ha :)
+
+Filer som følger med i arkivet:
+
+ATA_install        Installasjons-script for CBM's Installer
+                   Klikk på dette ikonet aller først. Vær oppmerksom på
+                   at du kanskje først må kopiere over Commodores
+                   "Installer" fra disketten merket "Install" i ditt
+                   originale Workbench diskettsett. Legg Installer i c:
+ATA.ncomm          Selve programmet. Legges i NComm:
+ATA.setup          Konfigureringsfil for valg av div. paramerere.
+ATA.guide          Dokumentasjon (AmigaGuide HyperText fil).
+ATA.rates          Ratefil til Callinfo. Legges i NComm:
+ATA.forandringer   Liste over nye/forandrede ting fra og med v1.0
+ATA.lesmeg         Denne fila (bare se selv :-)
+DTMF               Program for å sende DTMF-toner fra Amigas lydkanaler
+ss.library         Special Support library som brukes av DTMF
+Eksempel.ATA       Eksempel på en meldingsfil med innlagt sidenummer
+ceddefaults.ata    Har du CED, legges denne i s:
+ATA-install-batch  Installasjons-batchfil. Interaktiv.
+                   For deg som ikke har Installer
+Requestfile        For deg som ikke har WB3.0, og som bruker NComm 3.02r.
+                   Dette fordi filereq ikke funker i 3.02r.
+Requestfile.man    Dokumentasjon for Requestfile.
+
+Hvis du har Commodores Installer-program, bruker du ATA_install
+scriptet. Installer tar seg også av oppgraderinger.
+
+Har du ikke Installer, kan du enten gjøre alt manuelt eller bruke
+batch-fila som følger med (klikke på ATA-install-batch ikonet).
+
+Hvis det ikke går å dobbeltklikke på ATA.guide, må du sjekke at du har
+AmigaGuide programmet i din path. Hvis ikke kan du endre default TOOL
+ved å trykke én gang på ikonet og velge information i Icon-menyen i
+Workbench. Endre default tooltype fra "AmigaGuide" til det som passer
+for maskinen din, f.eks. "c:AmigaGuide" eller "c:MultiView"... Har du
+ikke en passende guide-leser, får du problemer. Prøv å få tak i et
+program som heter Gguide2txt (gguide2txt.lha). Det vil konvertere et
+Guide-dokument til vanlig tekst!
+
+ATA er ShareWare, og koster kr. 50,- hvis du bruker det flere ganger.
+
+Jan Høydahl, Vestliveien 4, 1344 HASLUM
+Giro: 2367.10.20839
+Jeg sender deg nøkkel pr. mail. Eventuelt pr. post (kr 85,-)
+
+PS   Du må ha NComm assignet for å bruke ATA - selv om ikke NComm
+     selv krever det lenger.
+
+PS/2 Skjellsord...
+
+PS/3 Er det ikke pussig hvordan engelske programnavn lyder mye
+     bedre enn norske? Hele programmet er jo på norsk, bortsett
+     fra navnet :-)

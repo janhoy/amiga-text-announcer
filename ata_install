@@ -1,0 +1,318 @@
+; $VER: ATA_Install v1.61b (28.Feb.95/12:50:00/CED) Written by INVENTOR of Chips computing
+; Installs Amiga Text Announcer
+
+(complete 0)
+(set ATA_dest (getassign "NComm"))
+(if (= ATA_dest "")
+	(set ATA_dest (getassign "Work"))
+	(if (= ATA_dest "")
+		(set ATA_dest "SYS:")
+	)
+)
+
+(set ATA_dest (tackon ATA_dest "ATA"))
+(set ATA_dest_text (tackon ATA_dest "Annonser"))
+(set ATA_ver "1.61b")
+(set ATA_dspace 125000)			; Den plassen programmet krever på disk
+(set Old_ATA_ver 0)
+(set Requestfile_dest "c:")
+(set @default-dest ATA_dest)
+(set dtmf_maske 1)				; Kun mulighet for DTMF, ikke default
+
+(if (NOT (exists @default-dest))
+	(makedir @default-dest (infos))
+)
+
+(set ATA_dest
+	(askdir
+		(prompt	"Velg hvor du vil plassere ATA-filene, dvs. "
+				"ATA.ncomm, ATA.setup osv. Har du ATA installert "
+				"fra før vil dette scriptet oppgradere dersom "
+				"du nå angir den skuffen ATA ligger i.")
+		(help	"For å ikke fylle opp NComm: med masse filer, "
+				"kan det være greit å legge ATA i en egen skuff "
+				"et annet sted på harddisken/disketten. "
+				"Har du ATA i NComm: fra før og ønsker å plassere "
+				"programmet et annet sted nå, må du slette den "
+				"gamle versjonen manuelt.")
+		(default @default-dest)
+	)
+)
+
+(if (NOT (= @default-dest ATA_dest))
+	(delete @default-dest (infos))
+)
+
+(set @default-dest ATA_dest)
+(set ATA_dest_text (tackon ATA_dest "Annonser"))
+
+;Finnes ATA på disken fra før? Da blir det oppgradering!
+(set answer1
+	(exists (tackon ATA_dest "ATA.ncomm"))
+)
+
+(if (= answer1 1)
+	; Then
+	(
+		(set versjon (getversion (tackon ATA_dest "ATA.ncomm")))
+		(set ver (/ versjon 65536))
+		(set rev (- versjon (* ver 65536)))
+		(set Old_ATA_ver ("%ld.%ld" ver rev))
+		(set @default-dest ATA_dest)
+		(if (= Old_ATA_ver ATA_ver)
+			; Then
+			(
+				(message	"Du har allerede v" ATA_ver"! "
+							"Virkelig sikker på at du trenger oppgradering?")
+				(set maske 0) (set Old_ATA_ver 0)
+			)
+			; Else
+			(
+				(message "Du har allerede en gammel versjon av ATA. "
+					"For å oppgradere til versjon "ATA_ver", bare fortsett "
+					"og bekreft spørsmålene og så er oppgraderingen ferdig.")
+				(set maske 1)
+			)
+		)
+	)
+	; Else
+	(
+		(message	"Du har ikke ATA på din maskin fra før. Følg "
+					"instruksjonene, så blir scriptet installert rikitg.")
+		(set maske 63)
+	)
+)
+
+(complete 20)
+
+; Sjekk hvor mye plass vi har ledig på disk
+(set disk_space (getdiskspace ATA_dest))
+
+; Finner ut hvilket device vi vil installere til
+(set ATA_device ATA_dest)
+
+; Og tester om det er nok plass der
+(if (< disk_space ATA_dspace)
+	; Then
+	(
+		(set answer1
+			(askbool
+				(prompt "Det er muligens ikke nok plass på enheten "
+					"\"" ATA_device "\" til å installere \"Amiga Text Announcer\". "
+					"Fortsette?")
+				(help "Amiga Text Announcer trenger ca " ATA_dspace " bytes ledig plass. ")
+			)
+		)
+		(if (NOT answer1)
+			(if (= @user-level 0)
+				(abort "ATA trenger ca. " ATA_dspace " bytes ledig plass. "
+					"Enheten \""
+					@default-dest
+					"\" har ikke så mye ledig. Slett noe og prøv igjen.")
+				(abort "ATA installasjon avbrutt.")
+			)
+		)
+	)
+)
+
+(set answer1
+	(askoptions
+		(prompt "Velg hvilke filer som skal kopieres til "ATA_dest". "
+			"Oppgraderer du, så er filer som er oppdatert siden forrige "
+			"versjon merket med hake allerede. Installerer du ATA for "
+			"første gang er alle filene merket.")
+		(choices "ATA.ncomm" "ATA.guide" "ATA.rate" "ATA.lesmeg"
+			"ATA.forandringer" "ATA.setup")
+		(help "Klikk på de boksene som gjelder de filene du vil "
+			"ha installert.")
+		(default maske)
+	)
+)
+
+(complete 40)
+
+;Installerer de filer som bruker har valgt!
+
+(if (BITAND answer1 1) (copyfiles (source "") (dest ATA_dest) (pattern "ATA.ncomm") (infos)))
+(if (BITAND answer1 2) (copyfiles (source "") (dest ATA_dest) (pattern "ATA.guide") (infos)))
+(if (BITAND answer1 4) (copyfiles (source "") (dest ATA_dest) (pattern "ATA.rate") (infos)))
+(if (BITAND answer1 8) (copyfiles (source "") (dest ATA_dest) (pattern "ATA.lesmeg") (infos)))
+(if (BITAND answer1 16) (copyfiles (source "") (dest ATA_dest) (pattern "ATA.forandringer") (infos)))
+(if (BITAND answer1 32) (copyfiles (source "") (dest ATA_dest) (pattern "ATA.setup") (infos)))
+
+(set answer1
+	(askbool
+		(prompt "Bruker du NComm 3.0 eller 3.02r (gjelder ikke 3.02k altså)?\n\n"
+				"Hvis du gjør det må ATA, "
+				"på grunn av en bug i disse versjonene av NComm, bruke "
+				"Requestfile for å få til filrequestere. "
+				"Svar "Ja" for å kopiere Requestfile til " Requestfile_dest ".\n\n"
+				"Brukere av AmigaDOS >=3.0 svarer "Nei" her uansett.")
+		(help	"Hvis du ikke gjør dette vil ikke ATA virke. "
+				"Gjelder kun deg med NComm 3.02r eller 3.0! ")
+	)
+)
+
+(if answer1
+	; Then
+	(copyfiles
+		(source "") (dest Requestfile_dest) (pattern "Requestfile#?")
+	)
+)
+
+(complete 50)
+
+; Sjekker om det var oppgradering. Hvis ikke, så gjør følgende:
+(if (< Old_ATA_ver 1)
+	; Then
+	(
+		; Make dest directory with icon for installer's askdir
+		(set ATA_dest_text_old ATA_dest_text)
+		(set answer1 (exists ATA_dest_text_old))
+		(if (= answer1 0)
+			(
+				(makedir ATA_dest_text_old (infos))
+			)
+		)
+
+		; Spør bruker hvor han (hun) vil ha annonsefilene.
+		(set ATA_dest_text
+			(askdir
+				(prompt "Velg hvor du vil plassere tekstfilene med "
+						"annonsene du skriver.")
+				(help "The choice is your's... :->")
+				(default ATA_dest_text_old)
+			)
+		)
+
+		; Rydder opp etter oss dersom bruker valgte noe annet enn default
+		(set answer1 (= ATA_dest_text ATA_dest_text_old))
+		(if (= answer1 0)
+			(delete (ATA_dest_text_old) (infos))
+		)
+
+		; Ekstra sikkerhet, men det burde ikke være nødvendig
+		(set answer1 (exists ATA_dest_text))
+		(if (= answer1 0)
+			(makedir ATA_dest_text (infos))
+		)
+	
+		; Modifiserer ATA.setup (legger til på slutten)
+		(set setup_fil (tackon ATA_dest "ATA.setup"))
+		(set atadir_text (cat "atadir        = \"" ATA_dest "\"\n"))
+		(set annonsedir_text (cat "annonsedir    = \"" ATA_dest_text "\"\n"))
+		(textfile
+			(dest setup_fil)
+			(append "/* Denne fila er endret av installer-scriptet. Se slutten. */\n")
+			(include setup_fil)
+			(append atadir_text)
+			(append annonsedir_text)
+		)
+
+		(complete 70)
+	
+		; Så var det Ced-Ed
+		(set answer1
+			(askbool
+				(prompt "Bruker du CygnusEd?\n\n"
+						"Svarer du ja, kopieres ceddefaults.ATA til s:")
+				(help	"Hvis du ikke bruker CED må du editere ATA.ncomm "
+						"og bytte ut "ED" med DIN editor. (Ex: memacs). "
+						"Du kan selvsagt bruke Amigados sin ED også...")
+			)
+		)
+
+		(if answer1
+			(copyfiles
+				(source "") (dest "s:") (pattern "ceddefaults.ATA")
+			)
+
+			(complete 80)
+		)
+
+		(complete 90)
+	)
+)
+
+; Now, we want everything to be copied into the right place
+(set answer1
+	(askbool
+		(prompt "Kopiere eksempeltekst Eksempel.ATA til \""
+				ATA_dest_text "\"?")
+		(help "Eksempelteksten er en 'fake' annonse som viser hvordan "
+			"du kan skrive annonsene dine. ")
+	)
+)
+
+(if answer1
+	; Then
+	(copyfiles
+		(source "") (dest ATA_dest_text) (pattern "Eksempel.ATA")
+	)
+)
+
+(set answer1
+	(askoptions
+		(prompt "Vil du ha mulighet til å bruke Amigaens lydkanaler "
+				"i steden for modem? Svarer du ja her installeres "
+				"et program som heter DTMF pluss ss.library som også "
+				"kreves.")
+		(choices "Ja, jeg vil ha muligheten" "Jeg vil ha DTMF ringing som standard")
+		(help	"ATA bruker det eksterne programmet DTMF for å "
+				"sende tonene til Amigaens høyttaler. Du må ha dette "
+				"programmet dersom du ikke bruker modem.")
+		(default dtmf_maske)	;Kun mulighet, ikke DTMF
+	)
+)
+
+(if (BITAND answer1 1)
+	; Then
+	(
+		(copyfiles
+			(source "") (dest "c:") (pattern "DTMF#?")
+		)
+		(copylib
+			 (source "ss.library") (dest "libs:")
+		)
+		(debug "Test: " answer1 2)
+		(if (BITAND answer1 2)
+			; Modifiserer ATA.setup (legger til på slutten)
+			(set setup_fil (tackon ATA_dest "ATA.setup"))
+			(set amigalyd_text (cat "brukamigalyd  = \"Yes\"\n"))
+			(textfile
+				(dest setup_fil)
+				(include setup_fil)
+				(append amigalyd_text)
+			)
+		)
+	)
+)
+
+(if (exists "ATA.keyfile")
+	; Then
+	(copyfiles (source "") (dest ATA_dest) (pattern "ATA.keyfile#?"))
+)
+
+(if (< Old_ATA_ver 1)
+	; Then
+	(message "Ferdig med installering.\n"
+		"Start NComm og legg inn '{arexx}"ATA_dest"/ATA.ncomm' på en makrotast "
+		"(Trykk Høyre-Amiga-M, skriv inn makroen og trykk 'SAVE')"
+		"OBS: Lagring kun tilgjenelig i registrert NComm.\n"
+		"Scriptet har endret ATA.setup for deg slik at ATA vet hvilke "
+		"kataloger du har installert de forskjellige filene til. "
+		"Dersom det ikke er riktig kan du endre ATA.setup manuelt.\n\n"
+		"Prøver å vise ATA.guide automatisk:"
+	)
+	; Else
+	(message "Ferdig med oppgradering.\n"
+		"Du må kanskje kikke på ATA.setup og modifisere litt? \n\n"
+		"Prøver å vise ATA.guide automatisk:"
+	)
+)
+
+(complete 99)
+(set kommando "SYS:Utilities/Amigaguide ")
+(set kommando (cat kommando "\"" (tackon ATA_dest "ATA.guide") "\"" ))
+(run kommando)
+(exit)

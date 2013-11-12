@@ -1,0 +1,134 @@
+Amiga Text Announcers lange historie:
+*************************************
+
+Nytt i versjon 1.61b (28-feb-95)
+------------------------------------------------
+* Rettet opp bug i konverteringen. Klarer nå tegnene W, X, Y, Z
+
+Nytt i versjon 1.61 (01-feb-95)
+------------------------------------------------
+* Funnet bug i NComm 3.0 også, som gjør at filrequesteren ikke funker
+  der heller, akkurat slik som i 3.02r... Bruker nå requestfile istedet.
+* Forskjeller i requestfile levert med OS3.0 og sharewareprogrammet
+  levert med ATA oppdaget - og korrigert for.
+* Lagt til mulighet for å slette en annonse fra disk etter sending.
+
+Nytt i versjon 1.6 (06-jan-95)
+------------------------------------------------
+* Støtte for tonesignalering UTEN bruk av modem, vha programmet DTMF!
+* TeleNors nye takster lagt inn i ATA.rate for priskalkulasjoner
+* Fjernet ED-replacement fra distribusjonen, tar bare opp plass
+* Sikrere Installer-script
+
+Nytt i versjon 1.55 (14-des-94)
+------------------------------------------------
+* Rettet opp dokumentasjonens henvisninger til gamle TekstTV-sider og
+  BBS-nummer. Nå foretrekkes AmigaZone BBS (67583409) som support BBS.
+* Ringt til TextTV og spurt om koder for utvidet tegnsett, men uten
+  resultat - de ville ikke gi ut slikt sa de og trodde at jeg laget et
+  program ved navn "TransTXT" :-))
+
+Nytt i versjon 1.5:
+------------------------------------------------
+* Lagt inn TV2's nye tegnsett
+  OBS!!! Dette medfører at mange tegn ikke lenger kan brukes!!!
+* Støtte for editorer som løsriver seg fra CLI. Må trykke bort requester
+* Rettet opp noen tekster, blant annet et telefonnummer i ATA.ncomm
+* Fixet en liten bug mht signatur for registrerte brukere
+* Bedre måte å laste egen configfil på
+* Penere status-utskrift til shell ved oppstart derfra
+* Tab blir nå oversatt til mellomrom istedenfor ingenting
+* Laget ikon for ATA.setup slik at editor startes automatisk
+* Dersom du bruker egen config-fil kommer ikke lenger requesteren
+  angående antall farger på skjermen opp ved oppstart.
+
+Nytt i versjon 1.4:
+------------------------------------------------
+* Dokumentasjonen er nå i AmigaGUIDE format!
+* Installering direkte fra AmigaGuide
+* Fungerer nå sammen med NComm v3.02 (og forhåpentligvis høyere)
+  Problemer rapportert med filerequesteren omgått ved å sjekke NComm
+  versjon og evt requestfile (følger med) dersom du kjører NComm 3.02r
+* Installer-scriptet håper jeg funker bedre nå
+* Installer-scriptet har nå kun norske tekster og gadgets
+* Lavere telefontakst i 1994, justert i beregningene
+* Støtte for filnavn som inneholder mellomrom (who needs that?)
+* Støtter nå NComm 2.0 og oppover og forhåpentligvis AmigaDOS 2.0 ->
+* Fjernet noen bugs m/rename (opptrådde sjelden, men...)
+* Fjernet _liten bug_ som førte til at dersom ATA ikke fant NComm så
+  ville den ikke starte etterpå selv om NComm var på plass
+* Utfører ScreenToFront() etter editering (kun NComm 3.0 ->)
+* Sørger for ISO CHARSET slik at bl.a. © ser riktig ut
+* Scriptet nå på over 20Kb :-)
+* Egen setup-fil hvor man kan konfigurere alle parameter
+* ENV variabel (opsjon) for å angi område for ATA og setup-fil
+* Mulighet for å ha ATA og datafiler i spesifiserte skuffer
+* Enda bedre takling av tegnkonverteringen
+* Bruker nå keyfile for registrerte brukere (shareware kr 50,-)
+* Kan bruke egen configfil i NComm automatisk (spesifiserbar)
+* Enkel tilføying av standard signatur for hver annonse
+* Installerscriptet kompilerte ikke i første upload av v1.4, sorry!
+* Installerscriptet påstod alltid at ATA ble installert i NComm:
+* Ceddefaults.ATA var ikke helt som planlagt. Bedre nå.
+* ++
+
+Nytt i versjon 1.3:
+------------------------------------------------
+* Lagt til utvidet tegnsett: _;%'/=()<>ÉÜ
+* Renskrevet koden slik at konvertering går raskere og bedre.
+* Bruker nå Commodores Installer-utility ved installering
+* Kan også installeres med medfølgende Shell-script (m/ ikon!)
+* Bedre feilsjekking rundtomkring
+
+Nytt i versjon 1.23:
+------------------------------------------------
+* Endret en delete-kommando til å bruke AmigaDOS sin ++
+* Fjernet bruk av "/" i ATDT kommando, da noen modemer tydeligvis
+  ikke har support for dette.
+* Sikkert noe mer jeg ikke husker :-)
+
+Nytt i versjon 1.22:
+------------------------------------------------
+* Kjøpte meg nytt modem og oppdaget da noen "bugs".
+  Nå skal man ikke lengre få "NO DIALTONE" eller "ERROR"
+  Dvs - *jeg* får fremdeles ERROR ved ath0 på slutten, men scriptet
+  venter 2 sekunder istedenfor å vente på "OK". Dermed går det bra.
+  Gi tilbakemelding på hvordan dette funker hos dere!
+* Modemet mitt piper også raskere. Endret tiden fra 0.4 til 0.33
+  Dermed beregnes omkostningene litt annerledes.
+* Har nå redusert "online" tiden med ytterligere 7 sekunder, så man
+  sparer vel litt over en krone pr. gang på det.
+
+Nytt i versjon 1.21:
+------------------------------------------------
+* Lagt til egne felter for initstreng til modemet samt mulighet for
+  kommando for å hindre "NO DIALTONE" ved andre gangs 'atdt'.
+  Satt denne kommandoen til 'atx0', dvs responssett 0.
+* Tillatte spesialtegn meldingen var litt gal. '#' er rettet til '"'
+* Noe forbedret installasjons-batchfil.
+* Nye ikoner :-)
+* Muligens fjernet noen småbugs??
+
+Nytt i versjon 1.2 (første release var 1.0):
+------------------------------------------------
+* ATA er nå -=ShareWare=- kr 50,-
+* Lagt til loggfunksjon. Bruk Callinfo for å holde styr på regnskapet.
+  ATA.rate følger med.
+* (Mye) bedre estimering av kostnader og tidsforbruk. Faktisk var
+  kostnadsberegningen i 1.0 temmelig unøyaktig grunnet uvitenhet
+  fra forfatterens side.
+* Rettet feilen med at programmet ikke kunne kjøres to ganger etter
+  hverandre fra makrotast. Skriv {arexx}Ncomm:ATA.ncomm i makro-
+  definisjonen. P.g.a. en CD underveis fant den ikke fram andre
+  gangen i v1.0
+* Mer automatikk. Slipper å klikke Yes to ganger etter hverandre
+* Gir deg ikke lov til å starte på nytt før forrige er avsluttet, noe
+  som førte til totalt kaos før.
+  Hvis ATA skulle klage over at du ikke kan kjøre flere versjoner
+  samtidig, og du IKKE gjør det, så prøv å avslutt NComm og skriv
+  'RX NComm:ATA.ncomm' fra CLI et par ganger. Det burde hjelpe :-)
+* Installasjonsscript følger med, samt ED til Ced
+* Enda bedre hastighet.
+* Lagt til prosentindikator under overføringen.
+* ATA har nå feilsjekking på områdenummeret som tastes/leses inn.
+* Skrevet om mye kode, masse småforbedringer
